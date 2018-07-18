@@ -1,0 +1,11 @@
+/Volumes/project/core/MySql-Pool/bin/Debug/netcoreapp2.1/MySql-Pool.deps.json
+/Volumes/project/core/MySql-Pool/bin/Debug/netcoreapp2.1/MySql-Pool.runtimeconfig.json
+/Volumes/project/core/MySql-Pool/bin/Debug/netcoreapp2.1/MySql-Pool.runtimeconfig.dev.json
+/Volumes/project/core/MySql-Pool/bin/Debug/netcoreapp2.1/MySql-Pool.dll
+/Volumes/project/core/MySql-Pool/bin/Debug/netcoreapp2.1/MySql-Pool.pdb
+/Volumes/project/core/MySql-Pool/obj/Debug/netcoreapp2.1/MySql-Pool.csprojAssemblyReference.cache
+/Volumes/project/core/MySql-Pool/obj/Debug/netcoreapp2.1/MySql-Pool.csproj.CoreCompileInputs.cache
+/Volumes/project/core/MySql-Pool/obj/Debug/netcoreapp2.1/MySql-Pool.AssemblyInfoInputs.cache
+/Volumes/project/core/MySql-Pool/obj/Debug/netcoreapp2.1/MySql-Pool.AssemblyInfo.cs
+/Volumes/project/core/MySql-Pool/obj/Debug/netcoreapp2.1/MySql-Pool.dll
+/Volumes/project/core/MySql-Pool/obj/Debug/netcoreapp2.1/MySql-Pool.pdb
