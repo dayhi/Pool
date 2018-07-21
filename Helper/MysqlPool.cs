@@ -46,19 +46,11 @@ namespace MySql_Pool.Helper {
                     break;
                 }
 
-                var mysqlPoolinfo = new MysqlInfo () {
-                    isRun = false,
-                    conn = new MySqlConnection (connStr),
-                    comm = new MySqlCommand ()
-                };
-
-                mysqlPoolinfo.comm.Connection = mysqlPoolinfo.conn;
+                var mysqlPoolinfo = new MysqlInfo (connStr);
 
                 sqlPool.Add (mysqlPoolinfo);
             }
         }
-
-        private readonly object objGetLock = new object ();
 
         /// <summary>
         /// 获取数据库操作对象
@@ -67,17 +59,14 @@ namespace MySql_Pool.Helper {
         public (MySqlConnection conn, MySqlCommand comm) GetMysqlInfo () {
             MysqlInfo result;
 
-            lock (objGetLock) {
-                while (true) {
-                    result = sqlPool.Where (s => !s.isRun).FirstOrDefault ();
-                    if (result != null) break;
-                    //否则添加数据
-                    AddInfo (sqlPool.Count * 2 + 1);
-                    Thread.Sleep (5);
-                }
+            while (true) {
+                result = GetFreeMysqlInfo ();
+                if (result != null) break;
+                //否则添加数据
+                AddInfo (sqlPool.Count * 2 + 1);
+                Thread.Sleep (5);
             }
 
-            result.isRun = true;
             return (result.conn, result.comm);
         }
 
@@ -89,7 +78,7 @@ namespace MySql_Pool.Helper {
             var info = sqlPool.Where (s => object.ReferenceEquals (s.comm, comm)).FirstOrDefault ();
             if (info != null) {
                 Remakes (info.comm);
-                info.isRun = false;
+                info.Free ();
             }
         }
 
@@ -102,6 +91,19 @@ namespace MySql_Pool.Helper {
             comm.CommandText = string.Empty;
             comm.CommandTimeout = 30;
             comm.Transaction = null;
+        }
+
+        /// <summary>
+        /// 获取释放的MysqlInfo并占用
+        /// </summary>
+        /// <returns>null表示当前无可用</returns>
+        private MysqlInfo GetFreeMysqlInfo () {
+            foreach (var mysqlinfo in sqlPool) {
+                if (!mysqlinfo.isRun)
+                    if (mysqlinfo.TackUp ())
+                        return mysqlinfo;
+            }
+            return null;
         }
     }
 
