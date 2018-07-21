@@ -7,8 +7,8 @@ using MySql.Data.MySqlClient;
 
 namespace MySql_Pool.Helper {
     public class MysqlPool {
-        private List<MysqlInfo> sqlPool = new List<MysqlInfo> ();
-
+        private List<MysqlInfo> dbPool = new List<MysqlInfo> ();
+        private BoolRunTime runTime;
         public readonly string connStr;
         public readonly int min;
         public readonly int max;
@@ -30,6 +30,7 @@ namespace MySql_Pool.Helper {
             this.min = min;
             this.max = max;
             this.connStr = connStr;
+            runTime = new BoolRunTime (max);
 
             AddInfo (min);
         }
@@ -41,14 +42,14 @@ namespace MySql_Pool.Helper {
         private void AddInfo (int count) {
             for (int i = 0; i < count; i++) {
 
-                if (sqlPool.Count >= max) {
+                if (dbPool.Count >= max) {
                     //TODO:连接不够用，写入日志
                     break;
                 }
 
                 var mysqlPoolinfo = new MysqlInfo (connStr);
 
-                sqlPool.Add (mysqlPoolinfo);
+                dbPool.Add (mysqlPoolinfo);
             }
         }
 
@@ -56,29 +57,28 @@ namespace MySql_Pool.Helper {
         /// 获取数据库操作对象
         /// </summary>
         /// <returns></returns>
-        public (MySqlConnection conn, MySqlCommand comm) GetMysqlInfo () {
-            MysqlInfo result;
-
+        public MysqlInfo GetMysqlInfo () {
+            int index = -1;
             while (true) {
-                result = GetFreeMysqlInfo ();
-                if (result != null) break;
+                index = runTime.GetFree (dbPool.Count);
+                if (index != -1) break;
                 //否则添加数据
-                AddInfo (sqlPool.Count * 2 + 1);
+                AddInfo (dbPool.Count * 2 + 1);
                 Thread.Sleep (5);
             }
 
-            return (result.conn, result.comm);
+            return dbPool[index];
         }
 
         /// <summary>
         /// 释放数据库操作对象
         /// </summary>
         /// <param name="conn"></param>
-        public void FreeInfo (MySqlCommand comm) {
-            var info = sqlPool.Where (s => object.ReferenceEquals (s.comm, comm)).FirstOrDefault ();
-            if (info != null) {
-                Remakes (info.comm);
-                info.Free ();
+        public void FreeInfo (MysqlInfo mysqlInfo) {
+            int index = dbPool.IndexOf (mysqlInfo);
+            if (index != -1) {
+                Remakes (mysqlInfo.comm);
+                runTime.Free (index);
             }
         }
 
@@ -93,18 +93,6 @@ namespace MySql_Pool.Helper {
             comm.Transaction = null;
         }
 
-        /// <summary>
-        /// 获取释放的MysqlInfo并占用
-        /// </summary>
-        /// <returns>null表示当前无可用</returns>
-        private MysqlInfo GetFreeMysqlInfo () {
-            foreach (var mysqlinfo in sqlPool) {
-                if (!mysqlinfo.isRun)
-                    if (mysqlinfo.TackUp ())
-                        return mysqlinfo;
-            }
-            return null;
-        }
     }
 
 }
