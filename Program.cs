@@ -32,7 +32,7 @@ namespace MySql_Pool {
 
         static void test1 (int count) {
             string connStr = "Host=127.0.0.1;port=3308;database=mytest;uid=root;pwd=123456";
-            MysqlPool mysqlPool = new MysqlPool (100, 1000, connStr);
+            DayPool<MysqlInfo> mysqlPool = new DayPool<MysqlInfo> (100, 1000, ()=>new MysqlInfo(connStr));
 
             Stopwatch sw = new Stopwatch ();
             sw.Start ();

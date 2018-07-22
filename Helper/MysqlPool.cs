@@ -4,32 +4,29 @@ using System.Data;
 using System.Linq;
 using System.Threading;
 using MySql.Data.MySqlClient;
+using MySql_Pool.Interface;
 
 namespace MySql_Pool.Helper {
-    public class MysqlPool {
-        private List<MysqlInfo> dbPool = new List<MysqlInfo> ();
+    public class DayPool<T> where T:IPoolInfo{
+        private List<T> poolInfos = new List<T> ();
         private BoolRunTime runTime;
-        public readonly string connStr;
         public readonly int min;
         public readonly int max;
 
-        /// <summary>
-        /// 创建数据库操作对象池，默认最小5，最大100
-        /// </summary>
-        /// <param name="connStr"></param>
-        /// <returns></returns>
-        public MysqlPool (string connStr) : this (5, 100, connStr) { }
+        private Func<T> addFunc;
 
         /// <summary>
-        /// 创建数据库操作对象池
+        /// 创建池
         /// </summary>
         /// <param name="min">最小值</param>
         /// <param name="max">最大值</param>
-        /// <param name="connStr">连接字符串</param>
-        public MysqlPool (int min, int max, string connStr) {
+        /// <param name="addAction">对象创建器</param>
+        public DayPool (int min, int max, Func<T> addFunc) {
+            if (addFunc == null) throw new Exception ("无法创建池，对象创建器为null");
+
             this.min = min;
             this.max = max;
-            this.connStr = connStr;
+            this.addFunc = addFunc;
             runTime = new BoolRunTime (max);
 
             AddInfo (min);
@@ -42,14 +39,12 @@ namespace MySql_Pool.Helper {
         private void AddInfo (int count) {
             for (int i = 0; i < count; i++) {
 
-                if (dbPool.Count >= max) {
+                if (poolInfos.Count >= max) {
                     //TODO:连接不够用，写入日志
                     break;
                 }
 
-                var mysqlPoolinfo = new MysqlInfo (connStr);
-
-                dbPool.Add (mysqlPoolinfo);
+                poolInfos.Add (addFunc ());
             }
         }
 
@@ -57,40 +52,29 @@ namespace MySql_Pool.Helper {
         /// 获取数据库操作对象
         /// </summary>
         /// <returns></returns>
-        public MysqlInfo GetMysqlInfo () {
+        public T GetMysqlInfo () {
             int index = -1;
             while (true) {
-                index = runTime.GetFree (dbPool.Count);
+                index = runTime.GetFree (poolInfos.Count);
                 if (index != -1) break;
                 //否则添加数据
-                AddInfo (dbPool.Count * 2 + 1);
+                AddInfo (poolInfos.Count * 2 + 1);
                 Thread.Sleep (5);
             }
 
-            return dbPool[index];
+            return poolInfos[index];
         }
 
         /// <summary>
         /// 释放数据库操作对象
         /// </summary>
         /// <param name="conn"></param>
-        public void FreeInfo (MysqlInfo mysqlInfo) {
-            int index = dbPool.IndexOf (mysqlInfo);
+        public void FreeInfo (T info) {
+            int index = poolInfos.IndexOf (info);
             if (index != -1) {
-                Remakes (mysqlInfo.comm);
+                info.Remakes ();
                 runTime.Free (index);
             }
-        }
-
-        /// <summary>
-        /// 重制comm
-        /// </summary>
-        /// <param name="comm"></param>
-        private static void Remakes (MySqlCommand comm) {
-            comm.CommandType = CommandType.Text;
-            comm.CommandText = string.Empty;
-            comm.CommandTimeout = 30;
-            comm.Transaction = null;
         }
 
     }
